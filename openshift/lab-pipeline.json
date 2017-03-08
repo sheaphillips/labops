@@ -1,0 +1,61 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "${LAB_PROJECT}-build",
+    "creationTimestamp": null
+  },
+  "objects": [
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${LAB_PROJECT}-lab-pipeline",
+        "creationTimestamp": null,
+        "labels": {
+          "app": "${LAB_PROJECT}-lab-pipeline",
+          "name": "${LAB_PROJECT}-lab-pipeline",
+          "template": "${LAB_PROJECT}-lab-pipeline"
+        },
+        "annotations": {
+          "openshift.io/generated-by": "OpenShiftNewApp",
+          "pipeline.alpha.openshift.io/uses": "[{\"name\": \"lab\", \"namespace\": \"\", \"kind\": \"DeploymentConfig\"}]"
+        }
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "reallysecret"
+            }
+          }
+        ],
+        "runPolicy": "Serial",
+        "source": {
+          "type": "None"
+        },
+        "strategy": {
+          "type": "JenkinsPipeline",
+          "jenkinsPipelineStrategy": {
+            "jenkinsfile": "node('master') {\n  stage('build') {\n    openshiftBuild(buildConfig: 'lab', showBuildLogs: 'true', namespace: 'student20-lab')\n  }\n  stage('deploy-to-test') {\n    echo \"Deploying to test...\"\n    openshiftDeploy(deploymentConfig: 'lab', namespace: 'student20-lab')\n  }\n  stage('validate') {\n      echo \"Testing...\"\n      \n      sh '''\n        test_result=$(curl http://lab-student20-lab.apps.cloudcompass.ca | grep \"\u003ctitle\u003eAngularJS • AwesomeTodoMVC\u003c/title\u003e\" | wc -l)\n        \n        if [ $test_result -eq 0 ]; then\n            echo \"Test failed.\"\n            exit 1\n        else\n            echo \"Test succeeded.\"\n            exit 0\n        fi\n    '''\n  }\n  stage('ready') {\n      echo \"Ready to promote.\"\n  }\n}\nstage('Deploy approval'){\n    input \"Deploy to prod?\"\n}\nnode('master') {\n    stage('tag-prod') {\n        openshiftTag(destStream: 'lab', destTag: 'prod', destinationNamespace: 'student20-lab', namespace: 'student20-lab', srcStream: 'lab', srcTag: 'latest', verbose: 'true')\n    }\n}"
+          }
+        },
+        "output": {},
+        "resources": {},
+        "postCommit": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "LAB_PROJECT",
+      "displayName": "name of target lab project",
+      "description": "name of target lab project",
+      "required": true
+    }
+  ]
+}
