@@ -1,0 +1,35 @@
+node('master') {
+  stage('build') {
+    openshiftBuild(buildConfig: 'lab', showBuildLogs: 'true', namespace: '${LAB_PROJECT}')
+  }
+  stage('deploy-to-test') {
+    echo "Deploying to test..."
+    openshiftDeploy(deploymentConfig: 'lab', namespace: '${LAB_PROJECT}')
+  }
+  stage('validate') {
+      echo "Testing..."
+
+      sh '''
+        test_result=$(curl http://lab-${LAB_PROJECT}.apps.cloudcompass.ca | grep "<title>AngularJS • TodoMVC</title>" | wc -l)
+
+        if [ $test_result -eq 0 ]; then
+            echo "Test failed."
+            exit 1
+        else
+            echo "Test succeeded."
+            exit 0
+        fi
+    '''
+  }
+  stage('ready') {
+      echo "Ready to promote."
+  }
+}
+stage('Deploy approval'){
+    input "Deploy to prod?"
+}
+node('master') {
+    stage('tag-prod') {
+        openshiftTag(destStream: 'lab', destTag: 'prod', destinationNamespace: '${LAB_PROJECT}', namespace: '${LAB_PROJECT}', srcStream: 'lab', srcTag: 'latest', verbose: 'true')
+    }
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-for student in {20..20}
+for student in {1..20}
 do
     student_name="student${student}"
     project_name="${student_name}-lab"

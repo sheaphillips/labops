@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-for student in {5..20}
+for student in {1..20}
 do
     repo_name="student${student}_lab"
     echo "Creating ${repo_name}..."
